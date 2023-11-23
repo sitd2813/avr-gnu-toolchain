@@ -1,0 +1,151 @@
+name: Release to GitHub
+run-name: Working on ${{ github.ref_name }}
+
+on:
+  push:
+    tags:
+      - v*.*.*-*
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Building
+    runs-on: ubuntu-22.04
+    outputs:
+      version: ${{ steps.get-version.outputs.version }}
+    steps:
+      - name: Install dependencies
+        run: |
+          sudo apt update
+
+          # Common dependencies
+          sudo apt install -y 7zip autogen build-essential m4 texinfo wget
+
+          # GDB dependencies
+          sudo apt install -y libgmp-dev liblzma-dev libxxhash-dev
+
+          # Cross-compilation dependencies
+          sudo apt install -y mingw-w64 wine-binfmt
+          sudo update-binfmts --disable cli
+
+      - uses: denoland/setup-deno@v1
+        with:
+          deno-version: v1.x
+
+      - uses: actions/checkout@v4
+
+      - name: Get version from tag name
+        id: get-version
+        run: |
+          VERSION=${{ github.ref_name }}
+          echo "version=${VERSION:1}" >> "${GITHUB_OUTPUT}"
+
+      - name: Build AVR GNU Toolchain
+        run: |
+          make -j$(($(nproc) + 1))
+
+      - name: Pack AVR GNU Toolchain
+        run: |
+          deno run --allow-read --allow-write --allow-sys script/create_release_note.ts ${{ steps.get-version.outputs.version }}
+          make -j$(($(nproc) + 1)) pack
+
+      - uses: actions/upload-artifact@v3
+        with:
+          name: artifact-avr-gnu-toolchain
+          path: |
+            build/AVR-GNU-Toolchain.tar.xz
+
+      - uses: actions/upload-artifact@v3
+        with:
+          name: artifact-avr-gnu-toolchain-amd64-windows
+          path: |
+            build/AVR-GNU-Toolchain-AMD64-Windows.7z
+
+      - uses: actions/upload-artifact@v3
+        with:
+          name: artifact-readme
+          path: |
+            build/README.md
+
+  test:
+    name: Testing on ${{ matrix.os-flavor }}
+    needs: build
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os-flavor: [Linux, Windows]
+        include:
+          - os-flavor: Linux
+            os: ubuntu-22.04
+          - os-flavor: Windows
+            os: windows-2022
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            Makefile
+          sparse-checkout-cone-mode: false
+
+      - run: |
+          mkdir build
+
+      - uses: actions/download-artifact@v3
+        if: matrix.os-flavor == 'Linux'
+        with:
+          name: artifact-avr-gnu-toolchain
+          path: build
+
+      - uses: actions/download-artifact@v3
+        if: matrix.os-flavor == 'Windows'
+        with:
+          name: artifact-avr-gnu-toolchain-amd64-windows
+          path: build
+
+      - name: Unpack and test AVR GNU Toolchain
+        if: matrix.os-flavor == 'Linux'
+        run: |
+          cd build
+          tar -xf AVR-GNU-Toolchain.tar.xz --one-top-level
+          cd ..
+          make check-avr-gnu-toolchain
+
+      - name: Unpack and test AVR GNU Toolchain for 64-bit Windows
+        if: matrix.os-flavor == 'Windows'
+        run: |
+          cd build
+          7z x AVR-GNU-Toolchain-AMD64-Windows.7z -o*
+          cd ..
+          make check-avr-gnu-toolchain-amd64-windows
+
+  release:
+    name: Releasing to GitHub
+    needs: [build, test]
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/download-artifact@v3
+        with:
+          name: artifact-avr-gnu-toolchain
+
+      - uses: actions/download-artifact@v3
+        with:
+          name: artifact-avr-gnu-toolchain-amd64-windows
+
+      - name: Rename artifacts
+        run: |
+          mv AVR-GNU-Toolchain.tar.xz AVR-GNU-Toolchain-${{ needs.build.outputs.version }}-AMD64-Linux.tar.xz
+          mv AVR-GNU-Toolchain-AMD64-Windows.7z AVR-GNU-Toolchain-${{ needs.build.outputs.version }}-AMD64-Windows.7z
+
+      - uses: actions/download-artifact@v3
+        with:
+          name: artifact-readme
+
+      - uses: softprops/action-gh-release@v1
+        with:
+          name: AVR GNU Toolchain ${{ needs.build.outputs.version }}
+          body_path: README.md
+          files: |
+            AVR-GNU-Toolchain-${{ needs.build.outputs.version }}-AMD64-Linux.tar.xz
+            AVR-GNU-Toolchain-${{ needs.build.outputs.version }}-AMD64-Windows.7z
