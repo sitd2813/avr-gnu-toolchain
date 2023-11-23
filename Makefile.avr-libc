@@ -1,0 +1,41 @@
+#!/usr/bin/make -f
+
+# * Options -------------------------------------------------------------- *
+# <https://download.savannah.gnu.org/releases/avr-libc/>: 2.1.0 (2022-01-14)
+VERSION ?= 2.1.0
+# * ---------------------------------------------------------------------- *
+
+PREFIX_BASE = $(strip $(dir $(realpath $(firstword $(MAKEFILE_LIST)))))
+TRIPLET_AVR = avr
+
+OPTIONS_CONFIGURE =
+SOURCE_ARCHIVE_URL = https://download.savannah.gnu.org/releases/avr-libc/avr-libc-$(VERSION).tar.bz2
+SOURCE_ARCHIVE = build/source-avr-libc-$(VERSION).tar.bz2
+BUILD_DIR = build/build-avr-libc-$(VERSION)
+INSTALL_DIR = build/AVR-LibC
+PREFIX = $(PREFIX_BASE)/$(INSTALL_DIR)
+
+.DELETE_ON_ERROR:
+
+.PHONY: all avr-libc
+all: avr-libc
+avr-libc: $(INSTALL_DIR)
+
+$(SOURCE_ARCHIVE):
+	mkdir -p build
+	wget $(SOURCE_ARCHIVE_URL) -O $@
+
+$(BUILD_DIR): $(SOURCE_ARCHIVE)
+	mkdir -p $@
+	tar -xf $< -C $@ --strip-components=1
+	cd $@ && ./configure --prefix=$(PREFIX) --host=$(TRIPLET_AVR) $(OPTIONS_CONFIGURE)
+	$(MAKE) -C $@
+
+$(INSTALL_DIR): $(BUILD_DIR)
+	$(MAKE) -C $< install-strip
+
+.PHONY: clean
+clean:
+	rm -rf $(SOURCE_ARCHIVE)
+	rm -rf $(BUILD_DIR)
+	rm -rf $(INSTALL_DIR)

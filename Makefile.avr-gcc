@@ -1,0 +1,74 @@
+#!/usr/bin/make -f
+
+# * Options --------------------------------------- *
+# <https://ftp.gnu.org/gnu/gcc/>: 13.2.0 (2023-07-27)
+VERSION ?= 13.2.0
+# * ----------------------------------------------- *
+
+PREFIX_BASE = $(strip $(dir $(realpath $(firstword $(MAKEFILE_LIST)))))
+TRIPLET_AMD64_WINDOWS = x86_64-w64-mingw32
+TRIPLET_AVR = avr
+
+OPTIONS_CONFIGURE = \
+--enable-host-bind-now\
+--enable-host-pie\
+--enable-languages=c,lto\
+--enable-lto\
+--with-gnu-as\
+--with-gnu-ld
+SOURCE_ARCHIVE_URL = https://ftp.gnu.org/gnu/gcc/gcc-$(VERSION)/gcc-$(VERSION).tar.xz
+SOURCE_ARCHIVE = build/source-gcc-$(VERSION).tar.xz
+SOURCE_DIR = build/source-gcc-$(VERSION)
+BUILD_DIR = $(SOURCE_DIR)/build
+BUILD_DIR_AMD64_WINDOWS = $(BUILD_DIR)-amd64-windows
+INSTALL_DIR = build/AVR-GCC
+INSTALL_DIR_AMD64_WINDOWS = $(INSTALL_DIR)-AMD64-Windows
+PREFIX = $(PREFIX_BASE)/$(INSTALL_DIR)
+PREFIX_AMD64_WINDOWS = $(PREFIX_BASE)/$(INSTALL_DIR_AMD64_WINDOWS)
+
+.DELETE_ON_ERROR:
+
+.PHONY: all avr-gcc avr-gcc-amd64-windows
+all: avr-gcc avr-gcc-amd64-windows
+avr-gcc: $(INSTALL_DIR)
+avr-gcc-amd64-windows: $(INSTALL_DIR_AMD64_WINDOWS)
+
+$(SOURCE_ARCHIVE):
+	mkdir -p build
+	wget $(SOURCE_ARCHIVE_URL) -O $@
+
+$(SOURCE_DIR): $(SOURCE_ARCHIVE)
+	mkdir -p $@
+	tar -xf $< -C $@ --strip-components=1
+	cd $@ && ./contrib/download_prerequisites
+
+$(BUILD_DIR): $(SOURCE_DIR)
+	mkdir -p $@
+	cd $@ && ../configure --prefix=$(PREFIX) --target=$(TRIPLET_AVR) $(OPTIONS_CONFIGURE)
+	$(MAKE) -C $@
+	$(MAKE) -C $@ check
+
+$(BUILD_DIR_AMD64_WINDOWS): $(SOURCE_DIR)
+	mkdir -p $@
+	cd $@ && ../configure --prefix=$(PREFIX_AMD64_WINDOWS) --target=$(TRIPLET_AVR) --host=$(TRIPLET_AMD64_WINDOWS) $(OPTIONS_CONFIGURE)
+	$(MAKE) -C $@
+	# $(MAKE) -C $@ check
+
+$(INSTALL_DIR): $(BUILD_DIR)
+	$(MAKE) -C $< install-strip
+
+$(INSTALL_DIR_AMD64_WINDOWS): $(BUILD_DIR_AMD64_WINDOWS)
+	$(MAKE) -C $< install-strip
+
+.PHONY: clean
+clean: clean-avr-gcc clean-avr-gcc-amd64-windows
+	rm -rf $(SOURCE_ARCHIVE)
+	rm -rf $(SOURCE_DIR)
+
+clean-avr-gcc:
+	rm -rf $(BUILD_DIR)
+	rm -rf $(INSTALL_DIR)
+
+clean-avr-gcc-amd64-windows:
+	rm -rf $(BUILD_DIR_AMD64_WINDOWS)
+	rm -rf $(INSTALL_DIR_AMD64_WINDOWS)
