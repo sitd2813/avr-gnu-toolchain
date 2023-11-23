@@ -1,0 +1,6 @@
+# Project
+build/
+test/
+
+# Visual Studio Code
+.vscode/
