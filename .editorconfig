@@ -5,25 +5,15 @@ root = true
 
 [*]
 charset = utf-8
+indent_style = tab
 insert_final_newline = true
 trim_trailing_whitespace = true
-
-# Makefile
-[{Makefile,Makefile.*}]
-indent_style = tab
 
 # Markdown
 [*.md]
 indent_size = 2
 indent_style = space
-
-# Makefile
-[{Makefile,Makefile.*}]
-indent_style = tab
-
-# TypeScript
-[*.ts]
-indent_style = tab
+trim_trailing_whitespace = false
 
 # YAML
 [*.{yaml,yml}]
