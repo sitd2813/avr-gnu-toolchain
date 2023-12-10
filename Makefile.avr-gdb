@@ -1,11 +1,14 @@
 #!/usr/bin/make -f
 
 # * Options -------------------------------------------- *
-# <https://ftp.gnu.org/gnu/gdb/>: 13.2 (2023-05-27)
-VERSION ?= 13.2
+# <https://ftp.gnu.org/gnu/gdb/>: 14.1 (2023-12-03)
+VERSION ?= 14.1
 
 # <https://ftp.gnu.org/gnu/gmp/>: 6.3.0 (2023-07-30)
 VERSION_GMP ?= 6.3.0
+
+# <https://ftp.gnu.org/gnu/mpfr/>: 4.2.1 (2023-08-22)
+VERSION_MPFR ?= 4.2.1
 
 # <https://tukaani.org/xz/>: 5.4.5 (2023-11-01)
 VERSION_XZ ?= 5.4.5
@@ -18,9 +21,10 @@ PREFIX_BASE ?= $(strip $(dir $(realpath $(firstword $(MAKEFILE_LIST)))))
 TRIPLET_AMD64_WINDOWS = x86_64-w64-mingw32
 TRIPLET_AVR = avr
 
+# GDB
 OPTIONS_CONFIGURE = \
---with-lzma\
---with-xxhash
+	--with-lzma \
+	--with-xxhash
 SOURCE_ARCHIVE_URL = https://ftp.gnu.org/gnu/gdb/gdb-$(VERSION).tar.xz
 SOURCE_ARCHIVE = build/source-gdb-$(VERSION).tar.xz
 SOURCE_DIR = build/source-gdb-$(VERSION)
@@ -31,32 +35,48 @@ INSTALL_DIR_AMD64_WINDOWS = $(INSTALL_DIR)-AMD64-Windows
 PREFIX = $(PREFIX_BASE)/$(INSTALL_DIR)
 PREFIX_AMD64_WINDOWS = $(PREFIX_BASE)/$(INSTALL_DIR_AMD64_WINDOWS)
 
+# GMP
 OPTIONS_CONFIGURE_GMP = \
---disable-shared\
---enable-static\
---enable-fat
+	--disable-shared \
+	--enable-static \
+	--enable-fat
 SOURCE_ARCHIVE_URL_GMP = https://ftp.gnu.org/gnu/gmp/gmp-$(VERSION_GMP).tar.xz
 SOURCE_ARCHIVE_GMP = build/source-gmp-$(VERSION_GMP).tar.xz
 BUILD_DIR_GMP_AMD64_WINDOWS = build/build-gmp-$(VERSION_GMP)-amd64-windows
 INSTALL_DIR_GMP_AMD64_WINDOWS = build/GMP-$(VERSION_GMP)-AMD64-Windows
 PREFIX_GMP_AMD64_WINDOWS = $(PREFIX_BASE)/$(INSTALL_DIR_GMP_AMD64_WINDOWS)
+PREFIX_BUILD_DIR_GMP_AMD64_WINDOWS = $(PREFIX_BASE)/$(BUILD_DIR_GMP_AMD64_WINDOWS)
 
+# MPFR
+OPTIONS_CONFIGURE_MPFR = \
+	--disable-shared \
+	--enable-static \
+	--enable-gmp-internals \
+	--enable-lto
+SOURCE_ARCHIVE_URL_MPFR = https://ftp.gnu.org/gnu/mpfr/mpfr-$(VERSION_MPFR).tar.xz
+SOURCE_ARCHIVE_MPFR = build/source-mpfr-$(VERSION_MPFR).tar.xz
+BUILD_DIR_MPFR_AMD64_WINDOWS = build/build-mpfr-$(VERSION_MPFR)-amd64-windows
+INSTALL_DIR_MPFR_AMD64_WINDOWS = build/MPFR-$(VERSION_MPFR)-AMD64-Windows
+PREFIX_MPFR_AMD64_WINDOWS = $(PREFIX_BASE)/$(INSTALL_DIR_MPFR_AMD64_WINDOWS)
+
+# LZMA
 OPTIONS_CONFIGURE_XZ = \
---disable-shared\
---enable-static\
---disable-xz\
---disable-xzdec\
---disable-lzmadec\
---disable-lzmainfo\
---disable-lzma-links\
---disable-scripts\
---disable-doc
+	--disable-shared \
+	--enable-static \
+	--disable-xz \
+	--disable-xzdec \
+	--disable-lzmadec \
+	--disable-lzmainfo \
+	--disable-lzma-links \
+	--disable-scripts \
+	--disable-doc
 SOURCE_ARCHIVE_URL_XZ = https://tukaani.org/xz/xz-$(VERSION_XZ).tar.xz
 SOURCE_ARCHIVE_XZ = build/source-xz-$(VERSION_XZ).tar.xz
 BUILD_DIR_LZMA_AMD64_WINDOWS = build/build-lzma-$(VERSION_XZ)-amd64-windows
 INSTALL_DIR_LZMA_AMD64_WINDOWS = build/LZMA-$(VERSION_XZ)-AMD64-Windows
 PREFIX_LZMA_AMD64_WINDOWS = $(PREFIX_BASE)/$(INSTALL_DIR_LZMA_AMD64_WINDOWS)
 
+# xxHash
 SOURCE_ARCHIVE_URL_XXHASH = https://github.com/Cyan4973/xxHash/archive/refs/tags/v$(VERSION_XXHASH).tar.gz
 SOURCE_ARCHIVE_XXHASH = build/source-xxhash-$(VERSION_XXHASH).tar.gz
 BUILD_DIR_XXHASH_AMD64_WINDOWS = build/build-xxhash-$(VERSION_XXHASH)-amd64-windows
@@ -83,11 +103,12 @@ $(BUILD_DIR): $(SOURCE_DIR)
 	cd $@ && ../configure --prefix=$(PREFIX) --target=$(TRIPLET_AVR) $(OPTIONS_CONFIGURE)
 	$(MAKE) -C $@
 
-$(BUILD_DIR_AMD64_WINDOWS): $(SOURCE_DIR) $(INSTALL_DIR_GMP_AMD64_WINDOWS) $(INSTALL_DIR_LZMA_AMD64_WINDOWS) $(INSTALL_DIR_XXHASH_AMD64_WINDOWS)
+$(BUILD_DIR_AMD64_WINDOWS): $(SOURCE_DIR) $(INSTALL_DIR_GMP_AMD64_WINDOWS) $(INSTALL_DIR_MPFR_AMD64_WINDOWS) $(INSTALL_DIR_LZMA_AMD64_WINDOWS) $(INSTALL_DIR_XXHASH_AMD64_WINDOWS)
 	mkdir -p $@
 	cd $@ && ../configure --prefix=$(PREFIX_AMD64_WINDOWS) --target=$(TRIPLET_AVR) --host=$(TRIPLET_AMD64_WINDOWS) $(OPTIONS_CONFIGURE) \
-		--with-libgmp-prefix=$(PREFIX_GMP_AMD64_WINDOWS)\
-		--with-liblzma-prefix=$(PREFIX_LZMA_AMD64_WINDOWS)\
+		--with-gmp=$(PREFIX_GMP_AMD64_WINDOWS) \
+		--with-mpfr=$(PREFIX_MPFR_AMD64_WINDOWS) \
+		--with-liblzma-prefix=$(PREFIX_LZMA_AMD64_WINDOWS) \
 		--with-libxxhash-prefix=$(PREFIX_XXHASH_AMD64_WINDOWS)
 	$(MAKE) -C $@
 
@@ -111,6 +132,22 @@ $(BUILD_DIR_GMP_AMD64_WINDOWS): $(SOURCE_ARCHIVE_GMP)
 	$(MAKE) -C $@ check
 
 $(INSTALL_DIR_GMP_AMD64_WINDOWS): $(BUILD_DIR_GMP_AMD64_WINDOWS)
+	$(MAKE) -C $< install-strip
+
+# MPDR for AMD64-Windows
+$(SOURCE_ARCHIVE_MPFR):
+	mkdir -p build
+	wget $(SOURCE_ARCHIVE_URL_MPFR) -O $@
+
+$(BUILD_DIR_MPFR_AMD64_WINDOWS): $(SOURCE_ARCHIVE_MPFR) $(INSTALL_DIR_GMP_AMD64_WINDOWS)
+	mkdir -p $@
+	tar -xf $< -C $@ --strip-components=1
+	cd $@ && ./configure --prefix=$(PREFIX_MPFR_AMD64_WINDOWS) --host=$(TRIPLET_AMD64_WINDOWS) $(OPTIONS_CONFIGURE_MPFR) \
+		--with-gmp-build=$(PREFIX_BUILD_DIR_GMP_AMD64_WINDOWS)
+	$(MAKE) -C $@
+	$(MAKE) -C $@ check
+
+$(INSTALL_DIR_MPFR_AMD64_WINDOWS): $(BUILD_DIR_MPFR_AMD64_WINDOWS)
 	$(MAKE) -C $< install-strip
 
 # LZMA for AMD64-Windows
@@ -147,7 +184,7 @@ $(INSTALL_DIR_XXHASH_AMD64_WINDOWS): $(BUILD_DIR_XXHASH_AMD64_WINDOWS)
 	cp $</xxhash.h $(PREFIX_XXHASH_AMD64_WINDOWS)/include/
 
 .PHONY: clean
-clean: clean-gmp clean-lzma clean-xxhash
+clean: clean-gmp clean-mpfr clean-lzma clean-xxhash
 	rm -rf $(SOURCE_ARCHIVE)
 	rm -rf $(SOURCE_DIR)
 	rm -rf $(INSTALL_DIR)
@@ -157,6 +194,11 @@ clean-gmp:
 	rm -rf $(SOURCE_ARCHIVE_GMP)
 	rm -rf $(BUILD_DIR_GMP_AMD64_WINDOWS)
 	rm -rf $(INSTALL_DIR_GMP_AMD64_WINDOWS)
+
+clean-mpfr:
+	rm -rf $(SOURCE_ARCHIVE_MPFR)
+	rm -rf $(BUILD_DIR_MPFR_AMD64_WINDOWS)
+	rm -rf $(INSTALL_DIR_MPFR_AMD64_WINDOWS)
 
 clean-lzma:
 	rm -rf $(SOURCE_ARCHIVE_XZ)

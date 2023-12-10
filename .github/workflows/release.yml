@@ -24,7 +24,7 @@ jobs:
           sudo apt install -y 7zip autogen build-essential m4 texinfo wget
 
           # GDB dependencies
-          sudo apt install -y libgmp-dev liblzma-dev libxxhash-dev
+          sudo apt install -y libgmp-dev libmpfr-dev liblzma-dev libxxhash-dev
 
           # Cross-compilation dependencies
           sudo apt install -y mingw-w64 wine-binfmt
