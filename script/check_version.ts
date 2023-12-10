@@ -23,14 +23,20 @@ await main(Deno.args)
 async function checkVersion(filename: string): Promise<boolean> {
 	const content = await Deno.readTextFile(filename)
 
-	const version1 = content.match(/^# <.+>: (.+) \(\d\d\d\d-\d\d-\d\d\)/m)![1]
-	const version2 = content.match(/VERSION \?= (.+)/)![1]
+	const v1s = [...content.matchAll(/^# <.+>: (.+) \(\d\d\d\d-\d\d-\d\d\)/gm)!].map(match => match[1])
+	const v2s = [...content.matchAll(/^VERSION(?:_\w+)? \?= (.+)/gm)!].map(match => match[1])
 
-	if (version1 !== version2) {
-		console.error(`Version mismatch in ${filename}: ${version1} != ${version2}`)
+	const checkVersionMismatch = (v1: string, v2: string): boolean => {
+		if (v1 !== v2) {
+			console.error(`Version mismatch: ${filename}: ${v1} != ${v2}`)
 
-		return false
+			return false
+		}
+
+		return true
 	}
 
-	return true
+	return v1s
+		.map((v1, i) => checkVersionMismatch(v1, v2s[i]))
+		.every(Boolean)
 }
