@@ -1,9 +1,18 @@
 #!/usr/bin/make -f
 
-# * Options ------------------------------------- *
+# * Options -------------------------------------------- *
 # <https://ftp.gnu.org/gnu/gdb/>: 13.2 (2023-05-27)
 VERSION ?= 13.2
-# * --------------------------------------------- *
+
+# <https://ftp.gnu.org/gnu/gmp/>: 6.3.0 (2023-07-30)
+VERSION_GMP ?= 6.3.0
+
+# <https://tukaani.org/xz/>: 5.4.5 (2023-11-01)
+VERSION_XZ ?= 5.4.5
+
+# <https://github.com/Cyan4973/xxHash>: 0.8.2 (2021-06-21)
+VERSION_XXHASH ?= 0.8.2
+# * ---------------------------------------------------- *
 
 PREFIX_BASE ?= $(strip $(dir $(realpath $(firstword $(MAKEFILE_LIST)))))
 TRIPLET_AMD64_WINDOWS = x86_64-w64-mingw32
@@ -22,8 +31,6 @@ INSTALL_DIR_AMD64_WINDOWS = $(INSTALL_DIR)-AMD64-Windows
 PREFIX = $(PREFIX_BASE)/$(INSTALL_DIR)
 PREFIX_AMD64_WINDOWS = $(PREFIX_BASE)/$(INSTALL_DIR_AMD64_WINDOWS)
 
-# <https://ftp.gnu.org/gnu/gmp/>: 6.3.0 (2023-07-30)
-VERSION_GMP = 6.3.0
 OPTIONS_CONFIGURE_GMP = \
 --disable-shared\
 --enable-static\
@@ -34,8 +41,6 @@ BUILD_DIR_GMP_AMD64_WINDOWS = build/build-gmp-$(VERSION_GMP)-amd64-windows
 INSTALL_DIR_GMP_AMD64_WINDOWS = build/GMP-$(VERSION_GMP)-AMD64-Windows
 PREFIX_GMP_AMD64_WINDOWS = $(PREFIX_BASE)/$(INSTALL_DIR_GMP_AMD64_WINDOWS)
 
-# <https://tukaani.org/xz/>: 5.4.5 (2023-11-01)
-VERSION_XZ = 5.4.5
 OPTIONS_CONFIGURE_XZ = \
 --disable-shared\
 --enable-static\
@@ -52,8 +57,6 @@ BUILD_DIR_LZMA_AMD64_WINDOWS = build/build-lzma-$(VERSION_XZ)-amd64-windows
 INSTALL_DIR_LZMA_AMD64_WINDOWS = build/LZMA-$(VERSION_XZ)-AMD64-Windows
 PREFIX_LZMA_AMD64_WINDOWS = $(PREFIX_BASE)/$(INSTALL_DIR_LZMA_AMD64_WINDOWS)
 
-# <https://github.com/Cyan4973/xxHash> 0.8.2 (2021-06-21)
-VERSION_XXHASH = 0.8.2
 SOURCE_ARCHIVE_URL_XXHASH = https://github.com/Cyan4973/xxHash/archive/refs/tags/v$(VERSION_XXHASH).tar.gz
 SOURCE_ARCHIVE_XXHASH = build/source-xxhash-$(VERSION_XXHASH).tar.gz
 BUILD_DIR_XXHASH_AMD64_WINDOWS = build/build-xxhash-$(VERSION_XXHASH)-amd64-windows
