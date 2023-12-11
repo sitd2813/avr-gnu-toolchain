@@ -3,6 +3,6 @@ repos:
     hooks:
       - id: check-version
         name: Check version
-        entry: deno run --allow-read scripts/check_version.ts
+        entry: deno task check-version
         language: system
         files: Makefile\.[\w-]+

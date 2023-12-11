@@ -1,3 +1,5 @@
+#!/usr/bin/env -S deno run --allow-read
+
 const main = async (args: string[]) => {
 	if (args.length < 1) {
 		console.error('Usage: deno run --allow-read check_version.ts [FILENAME...]')

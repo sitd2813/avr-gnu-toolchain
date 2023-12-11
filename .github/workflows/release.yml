@@ -48,7 +48,7 @@ jobs:
 
       - name: Pack AVR GNU Toolchain
         run: |
-          deno run --allow-read --allow-write --allow-sys scripts/create_release_note.ts ${{ steps.get-version.outputs.version }}
+          deno task create-release-note ${{ steps.get-version.outputs.version }}
           make -j$(($(nproc) + 1)) pack
 
       - uses: actions/upload-artifact@v3

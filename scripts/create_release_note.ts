@@ -1,4 +1,6 @@
-import * as PRETTIER from "npm:prettier@3"
+#!/usr/bin/env -S deno run --allow-read --allow-write --allow-sys
+
+import * as PRETTIER from "prettier"
 
 interface Info {
 	version: string

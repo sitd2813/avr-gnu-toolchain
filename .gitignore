@@ -2,5 +2,8 @@
 build/
 test/
 
+# Deno
+deno.lock
+
 # Visual Studio Code
 .vscode/

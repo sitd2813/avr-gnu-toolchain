@@ -1,0 +1,10 @@
+{
+	"imports": {
+		"prettier": "npm:prettier@3"
+	},
+
+	"tasks": {
+		"check-version": "deno run --allow-read=./ scripts/check_version.ts",
+		"create-release-note": "deno run --allow-read --allow-write=build/ --allow-sys scripts/create_release_note.ts"
+	}
+}
