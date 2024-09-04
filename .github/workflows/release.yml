@@ -92,13 +92,13 @@ jobs:
       - run: |
           mkdir build
 
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4.1.7
         if: matrix.os-flavor == 'Linux'
         with:
           name: artifact-avr-gnu-toolchain
           path: build
 
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4.1.7
         if: matrix.os-flavor == 'Windows'
         with:
           name: artifact-avr-gnu-toolchain-amd64-windows
@@ -125,11 +125,11 @@ jobs:
     needs: [build, test]
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4.1.7
         with:
           name: artifact-avr-gnu-toolchain
 
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4.1.7
         with:
           name: artifact-avr-gnu-toolchain-amd64-windows
 
@@ -138,7 +138,7 @@ jobs:
           mv AVR-GNU-Toolchain.tar.xz AVR-GNU-Toolchain-${{ needs.build.outputs.version }}-AMD64-Linux.tar.xz
           mv AVR-GNU-Toolchain-AMD64-Windows.7z AVR-GNU-Toolchain-${{ needs.build.outputs.version }}-AMD64-Windows.7z
 
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4.1.7
         with:
           name: artifact-readme
 
